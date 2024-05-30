@@ -1,0 +1,175 @@
+---
+title: "STAT 432 - Final Project"
+author:
+- Vahit Yildiz (vyildiz2)
+- Jeffrey Yan (yan52)
+- Jett Miller (jmill72)
+- Christopher Munoz (cmunoz34)
+date: "April 30th, 2024"
+output:
+  html_document:
+    toc: true
+    df_print: paged
+  pdf_document:
+    toc: true
+indent: true
+header-includes: \usepackage{setspace}\doublespacing
+---
+
+\newpage
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem Statement and Literature Review
+
+The Caravan data set aims to predict potential buyers of caravan insurance policies. By accurately identifying what kind of individuals are more likely to purchase caravan insurance, an insurance company can make informed sales decisions about their target demographic. The challenge lies in identifying which demographic, or socio-economic factors contribute most to whether a person decides to buy caravan insurance.
+
+We have decided to look at other data sets to see possible better ways of figuring out the best indicators of whether someone will buy Caravan insurance. One data set we looked at was by YongSeog Kim and Nick Street, who were the description task winners. Their prediction method used artificial neural networks (ANNs) and did feature subset search using the Evolutionary Local Search Algorithm (ELSA). They narrowed down the variables through this and found that with ELSA being “tested more extensively with five ten-fold cross-validation runs” the solutions were more “promising” (Kim & Street 1). They ended up finding that out of the 85 variables (not including whether they bought Caravan insurance or not), they ended up with “21 features and has an expected hit rate of 16.72% in the top 20% of the predictions” (Kim & Street 1). They did test other methods to get reduce features, but they claimed that those methods were not as good ELSA/ANN combination. After selecting their optimal feature model dataset, they used the Chi-square Test from that point on to see the individually significant variables, and coincidentally also found 21 variables at the 95% confidence level. In their report, some of the variables that were found to be the most important in whether a person was “Contribution Car Policies” (showing the largest difference between buyers and non-buyers). “Income level”, “Education level”, and “The number of car policies” (Kim & Street 4-5) were all found to be very statistically significant. What was said for an average customer that was most likely to buy Caravan insurance are “established families, upper-middle to upper wealth level, at least two insured automobiles, with other insurance policies a plus” (Kim & Street 5).
+
+We also looked at the predictive winner Charles Elkan’s analysis. Elkan tried Naive Bayesian Learning and Boosting but after trying boosting, he detected that boosting did not give any significance in accuracy, thus, for his prediction Elkan used Naive Bayesian Learning. As Elkan observed that the demographic attributes did not add much predictive power, he used a simple model using purchasing power attribute as the only demographic attribute, and two derived attributes; ‘car’ and ‘fire’. ‘car’ attribute is the cross-product of ‘Contribution car policies’ attribute and ‘Number of car policies’ attribute. ‘fire’ attribute is the cross-product of ‘Contribution fire policies’ attribute and ‘Number of fire policies’ attribute (Elkan 1-2).
+
+A third report that we looked at for clarification was Phillip Brierley who used neural networks for his findings. He found that people that owned cars have fire insurance policy of a certain level, specifically level. The classes found are most likely to be “middle class or affluent young families” (Brierley 2).
+
+When comparing all three reports that we used, they all have used different learning methods to get the best variables that would support their evidence, though they ended up with somewhat similar answers. While some learning methods are better and will give objectively better results, most will give a good idea of variables that impact whether people want to buy Caravan insurance.
+
+## Details of the Dataset
+
+The Caravan dataset contains 5822 instances and 86 variables, with all the variables being categorical variables. The variables include demographic information, such as purchasing power class and marital status, and ownership and insurance information, such as number of car policies and contribution life insurances. The variables starting with ‘M’ are the variables about demographic information, the variables starting with ‘P’ are the variables for the contribution to various policies, and the variables starting with ‘A’ are the variables for the number of various policies. The target variable to predict in this dataset is the ‘Purchase’ variable and the aim is to predict whether a given person would get caravan insurance. In order to make coding easier, we changed the string in the 'Purchase' variable from "yes" and "no" to integers 1 and 0 respectively. We briefly checked to see if there are any missing values by running a quick is.na() function in R and found that there are no NA functions this way. We also ran summary statistics on every variable and found that there are no missing values, so no observations need to be taken out in the final model due to missing values. This dataset was used in the CoIL 2000 Challenge and is also based on real world businesses.
+
+## Classification Tasks
+
+We have fitted four different models, we first started doing a logistic regression model with a forwards step function. Originally, we started with a backwards step function, but we had about 10 more variables compared to forward step function, and we wanted to minimize variables and prevent over-fitting. We found using this way we had a ???% accuracy. For this model, and for every model we will be talking about, we split the training and testing data 80/20 to have an optimal split to make sure our data is trained and tested properly, and the 80/20 split is a generally accepted split in statistics when working with data.
+
+Next up, we did ridge regression, leave one out cross-validation. As we can see we have plotted a cross validation plot here. In this plot we have lambda 1se and lambda min is a regularization parameter, that gives us a good model that balances over-fitting and under-fitting. Our lambda 1se is optimal for making the simplest model possible, as you can see in the graph lambda 1se has only 7 variables that do not have regularization penalties (making the coefficient zero), while lambda min has 30 variables. We found that the lambda min cross-validated error is approximately 0.00321, and the lambda 1se error is approximately 0.0142 (which makes sense considering that its one standard error above lambda min). After finding this out, we found out through the confusion matrix, we got a ??% accuracy, %% sensitivity.
+
+Here we have K nearest neighbors (KNN). KNN algorithm is a machine learning classifier that predicts our target (testing data) variables using the surrounding similar independent variables (training data). We found that our accuracy is 94%, perhaps this accuracy is not as good as it looks because maybe if it guesses not every time, we still get 94% correct.
+
+Random Forest is a machine learning algorithm that looks at decisions trees that build multiple decision trees and merge them together to get a more accurate and stable prediction. This random forest is a classification forest with 500 trees, where we tried 9 variables each split. Our AUC for random forest is approximately 0.7250, and our accuracy is about 93.64%, specificity is at about 94.38%, and sensitivity is at 10.00% An AUC of 0.7250 while isn’t great, it is acceptable.
+
+```{r, include = FALSE, cache = TRUE}
+set.seed(7)
+# Load the library and data set
+library(ISLR)
+data(Caravan)
+
+# Assign a numerical answer to the purchase result
+Caravan$Purchase = ifelse(Caravan$Purchase == "Yes", 1, 0)
+
+#  Perform forward step
+initial_model = glm(Purchase ~ 1, data = Caravan)
+fwd_model = step(initial_model, direction = "forward", scope = formula(glm(Purchase ~ ., data = Caravan)))
+
+# Perform backward step
+full_model = glm(Purchase ~ ., data = Caravan)
+bwk_model = step(full_model, direction = "backward")
+```
+
+```{r, echo = FALSE, cache = TRUE}
+age = table(Caravan$MGEMLEEF[Caravan$Purchase == 1])
+names(age) = c("20 - 30","30 - 40","40 - 50","50 - 60","60 - 70","70 - 80")
+barplot(age,
+		col = rainbow(6),
+		main = "Age Group of Policy Holders",
+		xlab = "Age Group",
+		ylab = "Count")
+```
+
+```{r, echo = FALSE, cache = TRUE}
+library(ggplot2)
+data(Caravan)
+insurance_summary = table(Caravan$Purchase)
+
+insurance_df = as.data.frame(insurance_summary)
+
+names(insurance_df) = c("Insurance", "Count")
+
+insurance_df$Proportion = insurance_df$Count / sum(insurance_df$Count)
+
+# Plotting
+ggplot(insurance_df, aes(x = "", y = Proportion, fill = Insurance)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  labs(fill = "Caravan Insurance", x = NULL, y = NULL, title = "Proportion of People Who Bought Caravan Insurance") +
+  theme_void() +
+  theme(legend.position = "right")
+```
+
+```{r, echo = FALSE, cache = TRUE}
+summary(fwd_model)
+```
+
+```{r, include = FALSE, cache = TRUE}
+set.seed(7)
+library(glmnet)
+
+X = model.matrix(Purchase ~ ., data = Caravan)[,-1]
+y = Caravan$Purchase
+
+train_index = sample(1:nrow(Caravan), 0.8 * nrow(Caravan))
+
+X_train = X[train_index, ]
+y_train = y[train_index]
+X_test =  X[-train_index, ]
+y_test = y[-train_index]
+
+cv_ridge <- cv.glmnet(X_train, y_train, alpha = 1, family = "binomial")
+```
+
+```{r, echo = FALSE, cache = TRUE}
+# Plot the cross-validation results
+plot(cv_ridge)
+```
+
+```{r, include = FALSE, cache = TRUE}
+library(class)
+set.seed(7)
+
+train_index = sample(1:nrow(Caravan), 0.8 * nrow(Caravan))
+
+train_data = Caravan[train_index, ]
+test_data = Caravan[-train_index, ]
+
+train_scaled = scale(train_data[, -86])  # Assuming 'Purchase' is the 86th column
+test_scaled = scale(test_data[, -86], center = attr(train_scaled, "scaled:center"), scale = attr(train_scaled, "scaled:scale"))
+
+knn_model = knn(train = train_scaled[, -86],
+				test = test_scaled[, -86],
+				cl = train_data$Purchase,
+				k = 5)
+```
+
+```{r, echo = FALSE, cache = TRUE}
+# Prediction matrix
+con_mat = as.data.frame(table(Predicted = knn_model, Actual = test_data$Purchase))
+round(sum(knn_model == test_data$Purchase) / nrow(test_data), 4)
+```
+
+```{r, include = FALSE, cache=TRUE}
+set.seed(7)
+library(randomForest)
+library(ISLR2)
+data(Caravan)
+train_index = sample(nrow(Caravan), 0.8 * nrow(Caravan))
+train_data = Caravan[train_index, ]
+test_data = Caravan[-train_index, ]
+caravan_rf = randomForest(Purchase ~ ., data = train_data, importance = TRUE, proximity = TRUE)
+summary(caravan_rf)
+print(caravan_rf)
+predictions = predict(caravan_rf, newdata = test_data)
+```
+
+```{r, echo = FALSE, cache = TRUE}
+varImpPlot(caravan_rf, sort=T, n.var= 12, main= "Caravan Variable Importance", pch=16)
+```
+
+```{r, echo = FALSE, cache = TRUE}
+caravan_rf
+```
+
+## Conclusion
+
+We have found that the best model is KNN with an MSE of 0.609, followed up by the random forest algorithm. For the variables, the income level of the customer has a considerable impact on the likelihood of purchasing caravan insurance. As the customer's income increases (MINKGEM), the likelihood of purchasing caravan insurance increases. We have also found that contribution car policies (PPERSAUT) has a statistically significant impact on whether a customer purchases caravan insurance, which logically concludes as one probably wouldn't have a car without car insurance. Contribution fire policies (PBRAND) is also another significant policy. Customer sub-type (MOSTYPE) is a considerable factor, as families that are more wealthy are more likely to get caravan insurance. Similarly, boat policies (APLEZIER) is an important variable. Farmers, another statistically significant variable, are statistically less likely to purchase caravan insurance.
+
+The ideal target demographic to sell caravan insurance to would be upper-middle to upper class folks which have car insurance (other insurance types have a statistically significant positive coefficient we have mentioned above), and that are 30-60 years of age.
